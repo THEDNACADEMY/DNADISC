@@ -1,9 +1,11 @@
 const ACCEPTING_RESPONSES = true;
-const ENABLE_REPORT_EXPORT = true;
+const ENABLE_REPORT_EXPORT = false;
+const REQUIRE_REMOTE_EMAIL_CHECK = true;
 const REQUIRE_LOCAL_EMAIL_ALLOWLIST = false;
-const LOCAL_ALLOWED_EMAILS = [];
+const LOCAL_ALLOWED_EMAILS = [
   // "student@example.com",
   // "another.student@example.com"
+];
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybZ2Xs7ydFmlEmiWWO8MnovR4nP1u2ypYi9WrOXPRtsblyU3SXqs9v6BXULdSUTi5Qiw/exec";
 
 const QUESTIONS = [
@@ -695,6 +697,44 @@ async function saveSubmission(payload) {
   return { skipped: false };
 }
 
+function checkRemoteAllowedEmail(email) {
+  if (!REQUIRE_REMOTE_EMAIL_CHECK || !GOOGLE_SCRIPT_URL) {
+    return Promise.resolve({ allowed: true });
+  }
+
+  return new Promise((resolve, reject) => {
+    const callbackName = `discEmailCheck_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Email check timed out."));
+    }, 12000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = data => {
+      cleanup();
+      resolve(data || { allowed: false });
+    };
+
+    const url = new URL(GOOGLE_SCRIPT_URL);
+    url.searchParams.set("action", "checkEmail");
+    url.searchParams.set("email", email);
+    url.searchParams.set("callback", callbackName);
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Email check failed."));
+    };
+    script.src = url.toString();
+    document.body.appendChild(script);
+  });
+}
+
 form.addEventListener("submit", async event => {
   event.preventDefault();
   if (!ACCEPTING_RESPONSES) return;
@@ -706,7 +746,28 @@ form.addEventListener("submit", async event => {
   };
 
   if (!isLocallyAllowedEmail(person.email)) {
-    statusEl.textContent = "This email address is not registered for this assessment.";
+        statusEl.textContent = "This email address is not registered for this assessment.";
+        return;
+      }
+
+  submitButton.disabled = true;
+  statusEl.textContent = "Checking access...";
+
+  try {
+    const access = await checkRemoteAllowedEmail(person.email);
+    if (!access.acceptingResponses) {
+      statusEl.textContent = "This assessment is currently closed and not accepting responses.";
+      submitButton.disabled = false;
+      return;
+    }
+    if (!access.allowed) {
+      statusEl.textContent = access.message || "This email address is not registered for this assessment.";
+      submitButton.disabled = false;
+      return;
+    }
+  } catch (error) {
+    statusEl.textContent = "Could not verify your email access. Please try again later.";
+    submitButton.disabled = false;
     return;
   }
 
@@ -724,7 +785,6 @@ form.addEventListener("submit", async event => {
     intensity: analysis.intensity
   };
 
-  submitButton.disabled = true;
   statusEl.textContent = "Calculating your result...";
   renderResult(person, scores, analysis);
 
