@@ -816,7 +816,7 @@ resultEl.addEventListener("click", event => {
 
 function openPrintableReport() {
   const reportHTML = resultEl.innerHTML;
-  const printWindow = window.open("", "_blank", "noopener,noreferrer");
+  const printWindow = window.open("", "_blank");
 
   if (!printWindow) {
     statusEl.textContent = "Please allow pop-ups, then click Export Report as PDF again.";
@@ -831,6 +831,7 @@ function openPrintableReport() {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>DISC Report</title>
+      <base href="${window.location.href}">
       <link rel="stylesheet" href="style.css">
       <style>
         body { background: #fff; }
