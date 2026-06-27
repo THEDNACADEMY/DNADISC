@@ -388,6 +388,7 @@ const statusEl = document.querySelector("#status");
 const closedMessage = document.querySelector("#closedMessage");
 const submitButton = document.querySelector("#submitButton");
 const resetButton = document.querySelector("#resetButton");
+let latestReportData = null;
 
 function renderQuestions() {
   questionsEl.innerHTML = QUESTIONS.map((question, index) => `
@@ -786,6 +787,7 @@ form.addEventListener("submit", async event => {
   };
 
   statusEl.textContent = "Calculating your result...";
+  latestReportData = { person, scores, analysis };
   renderResult(person, scores, analysis);
 
   try {
@@ -815,7 +817,12 @@ resultEl.addEventListener("click", event => {
 });
 
 function openPrintableReport() {
-  const reportHTML = resultEl.innerHTML;
+  if (!latestReportData) {
+    statusEl.textContent = "Please complete the assessment before exporting the report.";
+    return;
+  }
+
+  const reportHTML = buildPrintableReport(latestReportData.person, latestReportData.scores, latestReportData.analysis);
   const printWindow = window.open("", "_blank");
 
   if (!printWindow) {
@@ -834,33 +841,164 @@ function openPrintableReport() {
       <base href="${window.location.href}">
       <link rel="stylesheet" href="style.css">
       <style>
-        body { background: #fff; }
-        .page {
-          width: 100%;
+        :root {
+          --burgundy: #5f0d33;
+          --gold: #eddcae;
+          --ink: #1c1a17;
+          --muted: #655f57;
+          --paper: #fffaf2;
+          --soft: #f7f0df;
+        }
+        * { box-sizing: border-box; }
+        body {
           margin: 0;
-          border: 0;
-          box-shadow: none;
+          background: #fff;
+          color: var(--ink);
+          font-family: Georgia, "Times New Roman", serif;
+          line-height: 1.5;
         }
-        header, .intro, #assessmentForm, .print-actions, .status {
-          display: none !important;
+        .pdf-page {
+          min-height: 10.6in;
+          padding: 0.55in;
+          page-break-after: always;
+          background: #fff;
         }
-        main { padding: 0; }
-        #result {
-          display: block !important;
-          margin-top: 0;
-          border-top: 0;
+        .pdf-page:last-child { page-break-after: auto; }
+        .cover {
+          min-height: 10.6in;
+          border: 2px solid var(--gold);
+          background: linear-gradient(180deg, var(--burgundy) 0 44%, var(--paper) 44% 100%);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 0.65in;
         }
-        .report-section {
+        .cover h1 {
+          color: #fff;
+          font-size: 48px;
+          margin: 0 0 18px;
+        }
+        .pdf-logo {
+          display: inline-flex;
+          align-items: center;
+          background: #fff;
+          border: 1px solid var(--gold);
+          padding: 10px 14px;
+          margin-bottom: 28px;
+          max-width: 430px;
+        }
+        .pdf-logo img {
+          display: block;
+          width: 390px;
+          max-width: 100%;
+          height: auto;
+        }
+        .cover .subtitle {
+          color: rgba(255,255,255,0.9);
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 15px;
+          max-width: 520px;
+        }
+        .cover-card {
+          background: #fff;
+          border: 1px solid var(--gold);
+          padding: 28px;
+          max-width: 560px;
+        }
+        .kicker, .pdf-label {
+          color: var(--burgundy);
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .cover-card h2 {
+          font-size: 32px;
+          margin: 8px 0 8px;
+        }
+        .pdf-header {
+          border-bottom: 3px solid var(--burgundy);
+          padding-bottom: 12px;
+          margin-bottom: 22px;
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+        }
+        .pdf-header h2 {
+          margin: 0;
+          font-size: 28px;
+        }
+        .pdf-section {
+          border: 1px solid var(--gold);
+          padding: 18px;
+          margin-bottom: 16px;
           break-inside: avoid;
+        }
+        .pdf-section h3 {
+          color: var(--burgundy);
+          margin: 0 0 10px;
+          font-size: 19px;
+        }
+        .pdf-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        .pdf-score {
+          display: grid;
+          grid-template-columns: 115px 1fr 35px;
+          gap: 10px;
+          align-items: center;
+          margin: 12px 0;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 13px;
+        }
+        .pdf-bar {
+          height: 12px;
+          background: var(--soft);
+          border: 1px solid var(--gold);
+        }
+        .pdf-bar span {
+          display: block;
+          height: 100%;
+          background: var(--burgundy);
+        }
+        .arabic {
+          direction: rtl;
+          text-align: right;
+          font-family: Arial, Helvetica, sans-serif;
+          line-height: 1.7;
+        }
+        .bilingual {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+        }
+        ul { margin: 0; padding-left: 18px; }
+        .arabic ul { padding-left: 0; padding-right: 18px; }
+        .reflection {
+          width: 100%;
+          border-collapse: collapse;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 13px;
+        }
+        .reflection th,
+        .reflection td {
+          border: 1px solid var(--gold);
+          padding: 12px;
+          vertical-align: top;
+        }
+        .notes-cell { height: 72px; }
+        @page { size: letter; margin: 0.35in; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .pdf-page, .cover { min-height: auto; }
         }
       </style>
     </head>
     <body>
-      <div class="page">
-        <main>
-          <section id="result">${reportHTML}</section>
-        </main>
-      </div>
+      ${reportHTML}
       <script>
         window.addEventListener("load", () => {
           setTimeout(() => window.print(), 350);
@@ -870,6 +1008,196 @@ function openPrintableReport() {
     </html>
   `);
   printWindow.document.close();
+}
+
+function buildPrintableReport(person, scores, analysis) {
+  const primary = STYLE_DATA[analysis.primary];
+  const secondary = STYLE_DATA[analysis.secondary];
+  const lowest = STYLE_DATA[analysis.lowest];
+  const total = Object.values(scores).reduce((sum, value) => sum + value, 0) || 1;
+  const blend = BLEND_DATA[analysis.blend] || {
+    en: `${primary.label} is supported by ${secondary.label}, creating a mixed profile with more than one visible strength.`,
+    ar: `يدعم ${secondary.labelAr} نمط ${primary.labelAr}، مما يخلق ملفا مختلطا بأكثر من قوة ظاهرة.`
+  };
+  const safeName = escapeHTML(person.name || "Participant");
+  const reportDate = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const lowLine = `Your lowest score is ${analysis.lowest} - ${lowest.label}. This points to the style you may use less automatically, especially under pressure.`;
+  const lowLineAr = `أدنى درجة لديك هي ${analysis.lowest} - ${lowest.labelAr}. يشير ذلك إلى النمط الذي قد تستخدمه بشكل أقل تلقائية، خصوصا تحت الضغط.`;
+
+  const bilingualParagraph = (en, ar) => `
+    <div class="bilingual">
+      <div><p>${escapeHTML(en)}</p></div>
+      <div class="arabic"><p>${escapeHTML(ar)}</p></div>
+    </div>
+  `;
+  const bilingualList = (enItems, arItems) => `
+    <div class="bilingual">
+      <div>${renderList(enItems)}</div>
+      <div class="arabic">${renderList(arItems)}</div>
+    </div>
+  `;
+
+  return `
+    <section class="cover">
+      <div>
+        <div class="pdf-logo">
+          <img src="assets/dna-logo.png" alt="Dynamic Neuro Academy logo">
+        </div>
+        <h1>DISC Personality Report</h1>
+        <p class="subtitle">A bilingual behavioral insight report prepared from the student's DISC assessment responses.</p>
+      </div>
+      <div class="cover-card">
+        <div class="kicker">Prepared For</div>
+        <h2>${safeName}</h2>
+        <p><strong>Profile:</strong> ${analysis.intensity} ${analysis.blend} - ${escapeHTML(primary.title)}</p>
+        <p><strong>النمط:</strong> <span class="arabic">${INTENSITY_AR[analysis.intensity]} ${analysis.blend} - ${escapeHTML(primary.titleAr)}</span></p>
+        <p><strong>Date:</strong> ${reportDate}</p>
+      </div>
+      <div class="subtitle">Confidential student report</div>
+    </section>
+
+    <section class="pdf-page">
+      <div class="pdf-header">
+        <div>
+          <div class="pdf-label">Score Snapshot</div>
+          <h2>Your DISC Pattern</h2>
+        </div>
+        <div class="arabic">
+          <div class="pdf-label">ملخص الدرجات</div>
+          <h2>نمطك في DISC</h2>
+        </div>
+      </div>
+      <div class="pdf-grid">
+        <div class="pdf-section">
+          <h3>Scores</h3>
+          ${["D", "I", "S", "C"].map(code => `
+            <div class="pdf-score">
+              <span>${code} - ${STYLE_DATA[code].label}</span>
+              <div class="pdf-bar"><span style="width:${Math.round((scores[code] / total) * 100)}%"></span></div>
+              <strong>${scores[code]}</strong>
+            </div>
+          `).join("")}
+        </div>
+        <div class="pdf-section">
+          <h3>Profile Map / خريطة النمط</h3>
+          <p><strong>Primary:</strong> ${analysis.primary} - ${escapeHTML(primary.title)}</p>
+          <p><strong>Secondary:</strong> ${analysis.secondary} - ${escapeHTML(secondary.title)}</p>
+          <p><strong>Blend:</strong> ${analysis.blend}</p>
+          <p><strong>Lowest:</strong> ${analysis.lowest} - ${escapeHTML(lowest.label)}</p>
+          <p class="arabic"><strong>النمط الأساسي:</strong> ${escapeHTML(primary.titleAr)}</p>
+          <p class="arabic"><strong>النمط الثانوي:</strong> ${escapeHTML(secondary.titleAr)}</p>
+        </div>
+      </div>
+      <div class="pdf-section">
+        <h3>Executive Summary / الملخص التنفيذي</h3>
+        ${bilingualParagraph(primary.summary, primary.summaryAr)}
+        ${bilingualParagraph(blend.en, blend.ar)}
+        ${bilingualParagraph(lowLine, lowLineAr)}
+      </div>
+    </section>
+
+    <section class="pdf-page">
+      <div class="pdf-header">
+        <div>
+          <div class="pdf-label">Personal Interpretation</div>
+          <h2>How This Profile Shows Up</h2>
+        </div>
+        <div class="arabic">
+          <div class="pdf-label">التفسير الشخصي</div>
+          <h2>كيف يظهر هذا النمط</h2>
+        </div>
+      </div>
+      <div class="pdf-section">
+        <h3>Core Description / الوصف الأساسي</h3>
+        ${bilingualParagraph(primary.deep, primary.deepAr)}
+      </div>
+      <div class="pdf-grid">
+        <div class="pdf-section">
+          <h3>Core Strengths / نقاط القوة</h3>
+          ${bilingualList(primary.strengths, primary.strengthsAr)}
+        </div>
+        <div class="pdf-section">
+          <h3>Growth Edges / نقاط النمو</h3>
+          ${bilingualList(primary.growth, primary.growthAr)}
+        </div>
+      </div>
+      <div class="pdf-section">
+        <h3>Possible Blind Spots / نقاط قد لا تكون واضحة</h3>
+        ${bilingualList(primary.blind, primary.blindAr)}
+      </div>
+    </section>
+
+    <section class="pdf-page">
+      <div class="pdf-header">
+        <div>
+          <div class="pdf-label">Application</div>
+          <h2>Communication, Stress, and Work</h2>
+        </div>
+        <div class="arabic">
+          <div class="pdf-label">التطبيق</div>
+          <h2>التواصل والضغط والعمل</h2>
+        </div>
+      </div>
+      <div class="pdf-section">
+        <h3>Communication Style / أسلوب التواصل</h3>
+        ${bilingualParagraph(primary.communication, primary.communicationAr)}
+      </div>
+      <div class="pdf-section">
+        <h3>Stress Pattern / نمط الضغط</h3>
+        ${bilingualParagraph(primary.stress, primary.stressAr)}
+      </div>
+      <div class="pdf-section">
+        <h3>Workplace Style / أسلوب العمل</h3>
+        ${bilingualParagraph(primary.work, primary.workAr)}
+        ${bilingualParagraph(primary.environment, primary.environmentAr)}
+      </div>
+      <div class="pdf-section">
+        <h3>Leadership and Team Style / أسلوب القيادة والفريق</h3>
+        ${bilingualParagraph(primary.leadership, primary.leadershipAr)}
+      </div>
+    </section>
+
+    <section class="pdf-page">
+      <div class="pdf-header">
+        <div>
+          <div class="pdf-label">Growth Plan</div>
+          <h2>Personal Action Plan</h2>
+        </div>
+        <div class="arabic">
+          <div class="pdf-label">خطة النمو</div>
+          <h2>خطة العمل الشخصية</h2>
+        </div>
+      </div>
+      <div class="pdf-section">
+        ${bilingualParagraph(
+          "For the next 30 days, focus on one strength to use more intentionally and one growth edge to practice in real conversations.",
+          "خلال الأيام الثلاثين القادمة، ركز على نقطة قوة واحدة تستخدمها بوعي أكبر، ونقطة نمو واحدة تمارسها في حوارات حقيقية."
+        )}
+      </div>
+      <table class="reflection">
+        <thead>
+          <tr>
+            <th>Reflection Question / سؤال للتأمل</th>
+            <th>Personal Notes / ملاحظات شخصية</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Where does my primary style help me create the most value?<br><span class="arabic">أين يساعدني نمطي الأساسي على خلق أكبر قيمة؟</span></td>
+            <td class="notes-cell"></td>
+          </tr>
+          <tr>
+            <td>Where might my primary style become too intense under pressure?<br><span class="arabic">أين قد يصبح نمطي الأساسي قويا أكثر من اللازم تحت الضغط؟</span></td>
+            <td class="notes-cell"></td>
+          </tr>
+          <tr>
+            <td>Which behavior from my lowest style do I need to practice?<br><span class="arabic">أي سلوك من النمط الأقل أحتاج إلى ممارسته؟</span></td>
+            <td class="notes-cell"></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  `;
 }
 
 renderQuestions();

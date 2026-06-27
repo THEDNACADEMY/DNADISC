@@ -35,6 +35,22 @@ header {
   border-bottom: 7px solid var(--accent);
 }
 
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  margin-bottom: 22px;
+  max-width: 360px;
+}
+
+.brand-lockup img {
+  display: block;
+  width: min(320px, 62vw);
+  height: auto;
+}
+
 header h1 {
   margin: 0 0 8px;
   font-size: clamp(28px, 4vw, 44px);
@@ -353,13 +369,14 @@ button:disabled {
 }
 
 @media (max-width: 760px) {
-  .page { width: 100%; margin: 0; border: 0; }
-  header, main { padding-left: 20px; padding-right: 20px; }
+    .page { width: 100%; margin: 0; border: 0; }
+    header, main { padding-left: 20px; padding-right: 20px; }
   .intro, .fields, .choices, .result-head, .report-grid, .question-title, .choice-text, .bilingual-block {
     grid-template-columns: 1fr;
   }
-  .bar-row { grid-template-columns: 92px 1fr 32px; }
-}
+    .bar-row { grid-template-columns: 92px 1fr 32px; }
+    .brand-lockup img { width: min(260px, 78vw); }
+  }
 
 @media print {
   body { background: #fff; }
