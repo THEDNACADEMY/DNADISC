@@ -1,5 +1,5 @@
 const ACCEPTING_RESPONSES = true;
-const ENABLE_REPORT_EXPORT = false;
+const ENABLE_REPORT_EXPORT = true;
 const REQUIRE_LOCAL_EMAIL_ALLOWLIST = false;
 const LOCAL_ALLOWED_EMAILS = [];
   // "student@example.com",
