@@ -881,9 +881,7 @@ function openPrintableReport() {
         .pdf-logo {
           display: inline-flex;
           align-items: center;
-          background: #fff;
-          border: 1px solid var(--gold);
-          padding: 10px 14px;
+          padding: 0;
           margin-bottom: 28px;
           max-width: 430px;
         }
