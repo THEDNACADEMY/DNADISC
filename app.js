@@ -543,10 +543,10 @@ function renderResult(person, scores, analysis) {
         ${renderBilingualParagraph(blend.en, blend.ar)}
         ${renderBilingualParagraph(lowLine, lowLineAr)}
         <div class="print-actions">
-          ${ENABLE_REPORT_EXPORT
-            ? '<button type="button" id="printReportButton">Print / Save Report</button>'
-            : '<button type="button" disabled>Print / Save Report</button><div class="export-disabled">Report export is currently disabled.</div>'
-          }
+              ${ENABLE_REPORT_EXPORT
+                ? '<button type="button" id="printReportButton">Export Report as PDF</button><div class="export-disabled">Choose "Save as PDF" in the print window.</div>'
+                : '<button type="button" disabled>Print / Save Report</button><div class="export-disabled">Report export is currently disabled.</div>'
+              }
         </div>
       </div>
       <div class="score-card">
@@ -810,9 +810,66 @@ resetButton.addEventListener("click", () => {
 
 resultEl.addEventListener("click", event => {
   if (ENABLE_REPORT_EXPORT && event.target && event.target.id === "printReportButton") {
-    window.print();
+    openPrintableReport();
   }
 });
+
+function openPrintableReport() {
+  const reportHTML = resultEl.innerHTML;
+  const printWindow = window.open("", "_blank", "noopener,noreferrer");
+
+  if (!printWindow) {
+    statusEl.textContent = "Please allow pop-ups, then click Export Report as PDF again.";
+    return;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(`
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>DISC Report</title>
+      <link rel="stylesheet" href="style.css">
+      <style>
+        body { background: #fff; }
+        .page {
+          width: 100%;
+          margin: 0;
+          border: 0;
+          box-shadow: none;
+        }
+        header, .intro, #assessmentForm, .print-actions, .status {
+          display: none !important;
+        }
+        main { padding: 0; }
+        #result {
+          display: block !important;
+          margin-top: 0;
+          border-top: 0;
+        }
+        .report-section {
+          break-inside: avoid;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="page">
+        <main>
+          <section id="result">${reportHTML}</section>
+        </main>
+      </div>
+      <script>
+        window.addEventListener("load", () => {
+          setTimeout(() => window.print(), 350);
+        });
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
 
 renderQuestions();
 
