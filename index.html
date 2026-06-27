@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DISC Assessment</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>DISC Assessment</h1>
+      <p>Answer each group by choosing the statement that sounds most like you. Your result appears immediately after submission.</p>
+    </header>
+
+    <main>
+      <div id="closedMessage" class="notice">
+        This assessment is currently closed and not accepting responses.
+      </div>
+
+      <section class="intro" aria-label="Assessment overview">
+        <div class="stat"><strong>D - Dominance</strong>How you move toward decisions, challenge, control, and results.</div>
+        <div class="stat"><strong>I - Visual</strong>How you use energy, visibility, optimism, and external expression.</div>
+        <div class="stat"><strong>S - Kinaesthetic</strong>How you process through feeling, steadiness, experience, and support.</div>
+        <div class="stat"><strong>C - Auditory</strong>How you process through thought, words, structure, and careful analysis.</div>
+        <div class="stat"><strong>Instant Result</strong>The page calculates your profile immediately after you answer all questions.</div>
+        <div class="stat"><strong>Private Access</strong>The owner can turn submissions on or off inside the code.</div>
+      </section>
+
+      <form id="assessmentForm">
+        <div class="fields">
+          <div>
+            <label for="name">Full name</label>
+            <input id="name" name="name" required autocomplete="name">
+          </div>
+          <div>
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" required autocomplete="email">
+          </div>
+        </div>
+
+        <div id="questions"></div>
+
+        <div class="actions">
+          <button id="submitButton" type="submit">Reveal My Result</button>
+          <button class="secondary" type="button" id="resetButton">Reset</button>
+        </div>
+        <div id="status" class="status"></div>
+      </form>
+
+      <section id="result" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
