@@ -1,10 +1,9 @@
 const ACCEPTING_RESPONSES = true;
 const ENABLE_REPORT_EXPORT = false;
 const REQUIRE_LOCAL_EMAIL_ALLOWLIST = false;
-const LOCAL_ALLOWED_EMAILS = [
+const LOCAL_ALLOWED_EMAILS = [];
   // "student@example.com",
   // "another.student@example.com"
-];
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybZ2Xs7ydFmlEmiWWO8MnovR4nP1u2ypYi9WrOXPRtsblyU3SXqs9v6BXULdSUTi5Qiw/exec";
 
 const QUESTIONS = [
